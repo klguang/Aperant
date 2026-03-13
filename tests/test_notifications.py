@@ -15,10 +15,18 @@ from urllib.error import URLError
 import pytest
 
 # Add backend to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "apps", "backend"))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "apps", "backend")))
 
-from integrations.notifications.config import (
+# Import modules directly to avoid Pylance resolution issues
+from integrations.notifications import (
     NotificationConfig,
+    NotificationService,
+    NotificationContext,
+    NullNotificationService,
+    WeComNotificationService,
+    get_notification_service,
+)
+from integrations.notifications.config import (
     NOTIFICATION_METHOD_WECOM,
     NOTIFICATION_METHOD_FEISHU,
     NOTIFICATION_METHOD_DINGTALK,
@@ -29,13 +37,6 @@ from integrations.notifications.config import (
     ENV_TRIGGER_CODE,
     ENV_TRIGGER_QA,
 )
-from integrations.notifications.service import (
-    NotificationService,
-    NotificationContext,
-    NullNotificationService,
-    get_notification_service,
-)
-from integrations.notifications.wecom import WeComNotificationService
 
 
 # ============================================================================
