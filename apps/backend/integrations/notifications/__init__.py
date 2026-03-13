@@ -12,6 +12,13 @@ from .service import (
     load_friendly_task_name,
 )
 from .wecom import WeComNotificationService
+from .i18n import (
+    translate,
+    get_language,
+    get_phase_display_name,
+    LANGUAGE_EN,
+    LANGUAGE_ZH,
+)
 
 __all__ = [
     "NotificationConfig",
@@ -21,4 +28,9 @@ __all__ = [
     "WeComNotificationService",
     "get_notification_service",
     "load_friendly_task_name",
+    "translate",
+    "get_language",
+    "get_phase_display_name",
+    "LANGUAGE_EN",
+    "LANGUAGE_ZH",
 ]

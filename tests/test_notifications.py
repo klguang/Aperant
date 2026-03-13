@@ -25,6 +25,11 @@ from integrations.notifications import (
     NullNotificationService,
     WeComNotificationService,
     get_notification_service,
+    translate,
+    get_language,
+    get_phase_display_name,
+    LANGUAGE_EN,
+    LANGUAGE_ZH,
 )
 from integrations.notifications.config import (
     NOTIFICATION_METHOD_WECOM,
@@ -395,26 +400,118 @@ class TestWeComNotificationService:
         assert "QA" in payload["text"]["content"]
 
     @patch.object(WeComNotificationService, "_send_request")
-    def test_send_test(self, mock_send_request, sample_webhook_url):
-        """Test send_test() method."""
+    def test_send_test_default_language(self, mock_send_request, sample_webhook_url):
+        """Test send_test() method with default language (English)."""
         mock_send_request.return_value = True
 
-        config = NotificationConfig(
-            enabled=True, method=NOTIFICATION_METHOD_WECOM, webhook_url=sample_webhook_url
-        )
-        service = WeComNotificationService(config)
-        result = service.send_test()
+        with patch.dict(os.environ, {}, clear=True):
+            config = NotificationConfig(
+                enabled=True, method=NOTIFICATION_METHOD_WECOM, webhook_url=sample_webhook_url
+            )
+            service = WeComNotificationService(config)
+            result = service.send_test()
 
-        assert result is True
-        mock_send_request.assert_called_once()
-        args, _ = mock_send_request.call_args
-        payload = args[0]
-        assert "测试通知" in payload["text"]["content"]
+            assert result is True
+            mock_send_request.assert_called_once()
+            args, _ = mock_send_request.call_args
+            payload = args[0]
+            assert "Test notification" in payload["text"]["content"]
+
+    @patch.object(WeComNotificationService, "_send_request")
+    def test_send_test_chinese(self, mock_send_request, sample_webhook_url):
+        """Test send_test() method in Chinese."""
+        mock_send_request.return_value = True
+
+        with patch.dict(os.environ, {"NOTIFICATION_LANGUAGE": "zh"}, clear=True):
+            config = NotificationConfig(
+                enabled=True, method=NOTIFICATION_METHOD_WECOM, webhook_url=sample_webhook_url
+            )
+            service = WeComNotificationService(config)
+            result = service.send_test()
+
+            assert result is True
+            mock_send_request.assert_called_once()
+            args, _ = mock_send_request.call_args
+            payload = args[0]
+            assert "测试通知" in payload["text"]["content"]
 
 
 # ============================================================================
 # Integration Tests (Real Webhook)
 # ============================================================================
+
+
+class TestI18n:
+    """Tests for i18n module."""
+
+    def test_get_language_default(self):
+        """Test get_language() returns default language (en) when NOTIFICATION_LANGUAGE is not set."""
+        with patch.dict(os.environ, {}, clear=True):
+            assert get_language() == LANGUAGE_EN
+
+    def test_get_language_en(self):
+        """Test get_language() returns English when NOTIFICATION_LANGUAGE is en."""
+        with patch.dict(os.environ, {"NOTIFICATION_LANGUAGE": "en"}, clear=True):
+            assert get_language() == LANGUAGE_EN
+
+    def test_get_language_zh(self):
+        """Test get_language() returns Chinese when NOTIFICATION_LANGUAGE is zh."""
+        with patch.dict(os.environ, {"NOTIFICATION_LANGUAGE": "zh"}, clear=True):
+            assert get_language() == LANGUAGE_ZH
+
+    def test_get_language_unsupported_language_falls_back_to_default(self):
+        """Test get_language() falls back to default (en) for unsupported languages."""
+        with patch.dict(os.environ, {"NOTIFICATION_LANGUAGE": "fr"}, clear=True):
+            assert get_language() == LANGUAGE_EN
+
+    def test_translate_en(self):
+        """Test translate() in English."""
+        with patch.dict(os.environ, {"NOTIFICATION_LANGUAGE": "en"}, clear=True):
+            assert "Test notification" in translate("notification.test")
+
+    def test_translate_zh(self):
+        """Test translate() in Chinese."""
+        with patch.dict(os.environ, {"NOTIFICATION_LANGUAGE": "zh"}, clear=True):
+            assert "测试通知" in translate("notification.test")
+
+    def test_translate_unsupported_language_falls_back_to_en(self):
+        """Test translate() falls back to English for unsupported languages."""
+        with patch.dict(os.environ, {"NOTIFICATION_LANGUAGE": "fr"}, clear=True):
+            assert "Test notification" in translate("notification.test")
+
+    def test_translate_missing_key_returns_key(self):
+        """Test translate() returns the raw key when translation is missing."""
+        with patch.dict(os.environ, {"NOTIFICATION_LANGUAGE": "en"}, clear=True):
+            assert translate("nonexistent.key") == "nonexistent.key"
+
+    def test_translate_with_parameters(self):
+        """Test translate() with parameter interpolation."""
+        with patch.dict(os.environ, {"NOTIFICATION_LANGUAGE": "en"}, clear=True):
+            result = translate("task.phase.complete", task_name="Test Task", phase="Plan")
+            assert "Test Task" in result
+            assert "Plan" in result
+
+    def test_translate_missing_parameters_falls_back_gracefully(self):
+        """Test translate() handles missing parameters gracefully."""
+        with patch.dict(os.environ, {"NOTIFICATION_LANGUAGE": "en"}, clear=True):
+            result = translate("task.phase.complete")
+            assert "task.phase.complete" in result
+
+    def test_get_phase_display_name_plan_en(self):
+        """Test get_phase_display_name() for plan phase in English."""
+        assert get_phase_display_name("plan", LANGUAGE_EN) == "Plan"
+
+    def test_get_phase_display_name_plan_zh(self):
+        """Test get_phase_display_name() for plan phase in Chinese."""
+        assert get_phase_display_name("plan", LANGUAGE_ZH) == "规划"
+
+    def test_get_phase_display_name_unknown_phase(self):
+        """Test get_phase_display_name() returns phase name for unknown phase."""
+        assert get_phase_display_name("unknown", LANGUAGE_EN) == "unknown"
+
+    def test_get_phase_display_name_unsupported_language_falls_back_to_en(self):
+        """Test get_phase_display_name() falls back to English for unsupported languages."""
+        assert get_phase_display_name("plan", "fr") == "Plan"
 
 
 @pytest.mark.integration

@@ -63,7 +63,8 @@
     "human_review": "Révision humaine",
     "done": "Terminé",
     "pr_created": "PR créée",
-    "error": "Erreur"
+    "error": "Erreur",
+    "display": "Afficher les colonnes"
   },
   "kanban": {
     "emptyBacklog": "Aucune tâche planifiée",

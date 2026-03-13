@@ -23,6 +23,14 @@ import { Plus, Inbox, Loader2, Eye, CheckCircle2, Archive, RefreshCw, GitPullReq
 import { Checkbox } from './ui/checkbox';
 import { ScrollArea } from './ui/scroll-area';
 import { Button } from './ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { TaskCard } from './TaskCard';
 import { SortableTaskCard } from './SortableTaskCard';
@@ -640,6 +648,14 @@ export function KanbanBoard({ tasks, onTaskClick, onNewTaskClick, onRefresh, isR
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [overColumnId, setOverColumnId] = useState<string | null>(null);
   const { showArchived, toggleShowArchived } = useViewState();
+
+  // Column visibility state management
+  const [visibleColumns, setVisibleColumns] = useState<Record<TaskStatus, boolean>>(() => {
+    return TASK_STATUS_COLUMNS.reduce((acc, status) => {
+      acc[status] = true; // Default all columns visible
+      return acc;
+    }, {} as Record<TaskStatus, boolean>);
+  });
 
   // Project store for queue settings
   const projects = useProjectStore((state) => state.projects);
@@ -1446,6 +1462,41 @@ export function KanbanBoard({ tasks, onTaskClick, onNewTaskClick, onRefresh, isR
             )}
           </div>
           <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-2 text-muted-foreground hover:text-foreground"
+                >
+                  <Settings className="h-4 w-4" />
+                  {t('tasks:columns.display')}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>{t('tasks:columns.display')}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {TASK_STATUS_COLUMNS.map((status) => (
+                  <DropdownMenuCheckboxItem
+                    key={status}
+                    checked={visibleColumns[status]}
+                    onCheckedChange={(checked) => {
+                      // Prevent hiding all columns - always leave at least one visible
+                      const currentlyVisible = Object.values(visibleColumns).filter(v => v).length;
+                      if (!checked && currentlyVisible <= 1) {
+                        return;
+                      }
+                      setVisibleColumns(prev => ({
+                        ...prev,
+                        [status]: !!checked
+                      }));
+                    }}
+                  >
+                    {t(TASK_STATUS_LABELS[status])}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             {onRefresh && (
               <Button
                 variant="ghost"
@@ -1471,39 +1522,41 @@ export function KanbanBoard({ tasks, onTaskClick, onNewTaskClick, onRefresh, isR
       >
         <div className="flex flex-1 gap-4 overflow-x-auto p-6">
           {TASK_STATUS_COLUMNS.map((status) => (
-            <DroppableColumn
-              key={status}
-              status={status}
-              tasks={tasksByStatus[status]}
-              onTaskClick={onTaskClick}
-              onStatusChange={handleStatusChange}
-              isOver={overColumnId === status}
-              onAddClick={status === 'backlog' ? onNewTaskClick : undefined}
-              onQueueAll={status === 'backlog' ? handleQueueAll : undefined}
-              onQueueSettings={status === 'queue' ? () => {
-                // Only open modal if we have a valid projectId
-                if (!projectId) return;
-                queueSettingsProjectIdRef.current = projectId;
-                setShowQueueSettings(true);
-              } : undefined}
-              onArchiveAll={status === 'done' ? handleArchiveAll : undefined}
-              maxParallelTasks={status === 'in_progress' ? maxParallelTasks : undefined}
-              archivedCount={status === 'done' ? archivedCount : undefined}
-              showArchived={status === 'done' ? showArchived : undefined}
-              onToggleArchived={status === 'done' ? toggleShowArchived : undefined}
-              selectedTaskIds={selectedTaskIds}
-              onSelectAll={() => selectAllTasks(status)}
-              onDeselectAll={deselectAllTasks}
-              onToggleSelect={toggleTaskSelection}
-              isCollapsed={columnPreferences?.[status]?.isCollapsed}
-              onToggleCollapsed={() => handleToggleColumnCollapsed(status)}
-              columnWidth={columnPreferences?.[status]?.width}
-              isResizing={resizingColumn === status}
-              onResizeStart={(startX) => handleResizeStart(status, startX)}
-              onResizeEnd={handleResizeEnd}
-              isLocked={columnPreferences?.[status]?.isLocked}
-              onToggleLocked={() => handleToggleColumnLocked(status)}
-            />
+            visibleColumns[status] && (
+              <DroppableColumn
+                key={status}
+                status={status}
+                tasks={tasksByStatus[status]}
+                onTaskClick={onTaskClick}
+                onStatusChange={handleStatusChange}
+                isOver={overColumnId === status}
+                onAddClick={status === 'backlog' ? onNewTaskClick : undefined}
+                onQueueAll={status === 'backlog' ? handleQueueAll : undefined}
+                onQueueSettings={status === 'queue' ? () => {
+                  // Only open modal if we have a valid projectId
+                  if (!projectId) return;
+                  queueSettingsProjectIdRef.current = projectId;
+                  setShowQueueSettings(true);
+                } : undefined}
+                onArchiveAll={status === 'done' ? handleArchiveAll : undefined}
+                maxParallelTasks={status === 'in_progress' ? maxParallelTasks : undefined}
+                archivedCount={status === 'done' ? archivedCount : undefined}
+                showArchived={status === 'done' ? showArchived : undefined}
+                onToggleArchived={status === 'done' ? toggleShowArchived : undefined}
+                selectedTaskIds={selectedTaskIds}
+                onSelectAll={() => selectAllTasks(status)}
+                onDeselectAll={deselectAllTasks}
+                onToggleSelect={toggleTaskSelection}
+                isCollapsed={columnPreferences?.[status]?.isCollapsed}
+                onToggleCollapsed={() => handleToggleColumnCollapsed(status)}
+                columnWidth={columnPreferences?.[status]?.width}
+                isResizing={resizingColumn === status}
+                onResizeStart={(startX) => handleResizeStart(status, startX)}
+                onResizeEnd={handleResizeEnd}
+                isLocked={columnPreferences?.[status]?.isLocked}
+                onToggleLocked={() => handleToggleColumnLocked(status)}
+              />
+            )
           ))}
         </div>
 

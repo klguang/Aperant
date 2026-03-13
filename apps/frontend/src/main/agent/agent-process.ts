@@ -229,6 +229,27 @@ export class AgentProcessManager {
     const ghCliEnv = this.detectAndSetCliPath('gh');
     const glabCliEnv = this.detectAndSetCliPath('glab');
 
+    // Add language configuration from app settings
+    // Maps frontend language (en/fr) to backend notification language (en/zh)
+    const appSettings = readSettingsFile() as Partial<AppSettings>;
+    const frontendLanguage = appSettings.language || 'en';
+    let notificationLanguage = 'en';
+    // Current frontend only supports 'en' and 'fr', both map to 'en'
+    // If 'zh' support is added in the future, we'll map it to 'zh'
+    if (frontendLanguage === 'en') {
+      notificationLanguage = 'en';
+    } else if (frontendLanguage === 'fr') {
+      notificationLanguage = 'en'; // French falls back to English
+    }
+    // Note: If frontend adds 'zh' support in the future, uncomment:
+    // else if (frontendLanguage === 'zh') {
+    //   notificationLanguage = 'zh';
+    // }
+    const languageEnv: Record<string, string> = {
+      NOTIFICATION_LANGUAGE: notificationLanguage
+    };
+    console.log('[AgentProcess] Setting notification language:', notificationLanguage, '(from frontend language:', frontendLanguage, ')');
+
     // Profile env is spread last to ensure CLAUDE_CONFIG_DIR and auth vars
     // from the active profile always win over extraEnv or augmentedEnv.
     const mergedEnv = {
@@ -237,6 +258,7 @@ export class AgentProcessManager {
       ...claudeCliEnv,
       ...ghCliEnv,
       ...glabCliEnv,
+      ...languageEnv,
       ...extraEnv,
       ...profileEnv,
       PYTHONUNBUFFERED: '1',

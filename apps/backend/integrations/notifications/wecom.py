@@ -1,6 +1,6 @@
 """
-WeCom (企业微信) Notification Service
-=====================================
+WeCom Notification Service
+=========================
 Implementation of WeCom group bot webhook notifications.
 """
 import json
@@ -11,6 +11,7 @@ import urllib.error
 
 from .config import NotificationConfig
 from .service import NotificationService, NotificationContext
+from .i18n import translate, get_phase_display_name
 
 logger = logging.getLogger(__name__)
 
@@ -64,13 +65,23 @@ class WeComNotificationService(NotificationService):
 
     def send(self, context: NotificationContext) -> bool:
         """Send notification for task phase completion."""
-        phase_display = {
-            "plan": "Plan",
-            "code": "Code",
-            "qa": "QA",
-        }.get(context.phase, context.phase)
+        # Get localized phase name
+        phase_display = get_phase_display_name(context.phase)
 
-        content = f"{context.task_name} {phase_display} 已经完成！"
+        # Get localized completion message
+        translation_key = f"task.{context.phase}.complete"
+        content = translate(
+            translation_key,
+            task_name=context.task_name,
+            phase=phase_display,
+        )
+        # Fallback to generic if specific phase key not found
+        if content == translation_key:
+            content = translate(
+                "task.phase.complete",
+                task_name=context.task_name,
+                phase=phase_display,
+            )
 
         logger.debug(
             "[WeCom] Sending notification: task=%s, phase=%s",
@@ -83,7 +94,7 @@ class WeComNotificationService(NotificationService):
 
     def send_test(self) -> bool:
         """Send a test notification."""
-        content = "测试通知：测试成功！"
+        content = translate("notification.test")
         payload = self._build_message(content)
         logger.debug("[WeCom] Sending test notification")
         return self._send_request(payload)
