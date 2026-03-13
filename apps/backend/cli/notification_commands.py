@@ -20,7 +20,6 @@ if str(_PARENT_DIR) not in sys.path:
 def handle_test_notification_command(
     method: str,
     webhook_url: str,
-    project_name: str = "Test Project",
 ) -> dict:
     """
     Handle the test notification command.
@@ -28,7 +27,6 @@ def handle_test_notification_command(
     Args:
         method: Notification method (wecom, feishu, dingtalk)
         webhook_url: Webhook URL for the notification service
-        project_name: Name of the project for the test message
 
     Returns:
         Dictionary with success status and error message if applicable
@@ -53,7 +51,7 @@ def handle_test_notification_command(
         service = get_notification_service(config)
 
         # Send the test notification
-        success = service.send_test(project_name)
+        success = service.send_test()
 
         if success:
             return {"success": True, "error": None}
@@ -85,12 +83,6 @@ def main():
         help="Webhook URL",
     )
     parser.add_argument(
-        "--project-name",
-        type=str,
-        default="Test Project",
-        help="Project name for the test message",
-    )
-    parser.add_argument(
         "--json",
         action="store_true",
         help="Output result as JSON",
@@ -101,7 +93,6 @@ def main():
     result = handle_test_notification_command(
         method=args.method,
         webhook_url=args.webhook_url,
-        project_name=args.project_name,
     )
 
     if args.json:

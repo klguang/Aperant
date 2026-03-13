@@ -60,7 +60,6 @@ def real_webhook_url():
 def notification_context():
     """Sample notification context."""
     return NotificationContext(
-        project_name="Test Project",
         task_name="Implement Feature X",
         phase="plan",
         spec_dir="/tmp/spec",
@@ -205,7 +204,7 @@ class TestNullNotificationService:
     def test_send_test_returns_true(self):
         """Test send_test() always returns True."""
         service = NullNotificationService()
-        assert service.send_test("Test Project") is True
+        assert service.send_test() is True
 
 
 class TestGetNotificationService:
@@ -404,14 +403,13 @@ class TestWeComNotificationService:
             enabled=True, method=NOTIFICATION_METHOD_WECOM, webhook_url=sample_webhook_url
         )
         service = WeComNotificationService(config)
-        result = service.send_test("Test Project")
+        result = service.send_test()
 
         assert result is True
         mock_send_request.assert_called_once()
         args, _ = mock_send_request.call_args
         payload = args[0]
         assert "测试通知" in payload["text"]["content"]
-        assert "Test Project" in payload["text"]["content"]
 
 
 # ============================================================================
@@ -433,7 +431,7 @@ class TestWeComNotificationServiceIntegration:
             enabled=True, method=NOTIFICATION_METHOD_WECOM, webhook_url=real_webhook_url
         )
         service = WeComNotificationService(config)
-        result = service.send_test("Aperant Integration Test")
+        result = service.send_test()
         assert result is True, "Failed to send test notification"
 
     @pytest.mark.skipif(

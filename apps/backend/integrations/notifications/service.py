@@ -5,7 +5,9 @@ Abstract base class for notification services and factory pattern.
 """
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional
+import json
 
 from .config import (
     NotificationConfig,
@@ -15,11 +17,32 @@ from .config import (
 )
 
 
+def load_friendly_task_name(spec_dir: Path) -> str:
+    """
+    Load friendly task name from implementation_plan.json.
+
+    Args:
+        spec_dir: Path to the spec directory
+
+    Returns:
+        Friendly task name, or spec_dir.name if not available
+    """
+    try:
+        plan_path = spec_dir / "implementation_plan.json"
+        if plan_path.exists():
+            with open(plan_path, encoding="utf-8") as f:
+                plan = json.load(f)
+            if plan.get("feature"):
+                return str(plan["feature"])
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+        pass
+    return spec_dir.name
+
+
 @dataclass
 class NotificationContext:
     """Context for a notification event."""
 
-    project_name: str
     task_name: str
     phase: str  # "plan", "code", "qa"
     spec_dir: Optional[str] = None
@@ -43,12 +66,9 @@ class NotificationService(ABC):
         pass
 
     @abstractmethod
-    def send_test(self, project_name: str) -> bool:
+    def send_test(self) -> bool:
         """
         Send a test notification.
-
-        Args:
-            project_name: Name of the project for test message
 
         Returns:
             True if successful
@@ -62,7 +82,7 @@ class NullNotificationService(NotificationService):
     def send(self, context: NotificationContext) -> bool:
         return True
 
-    def send_test(self, project_name: str) -> bool:
+    def send_test(self) -> bool:
         return True
 
 

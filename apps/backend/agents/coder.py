@@ -1655,16 +1655,15 @@ async def run_autonomous_agent(
             from integrations.notifications.config import NotificationConfig
             from integrations.notifications.service import get_notification_service
             from integrations.notifications.service import NotificationContext
+            from integrations.notifications.service import load_friendly_task_name
 
             notification_config = NotificationConfig.from_env()
             if notification_config.should_trigger("code"):
-                # Get project and task names
-                project_name = project_dir.name
-                task_name = spec_dir.name
+                # Get task name
+                task_name = load_friendly_task_name(spec_dir)
 
                 notification_service = get_notification_service(notification_config)
                 context = NotificationContext(
-                    project_name=project_name,
                     task_name=task_name,
                     phase="code",
                     spec_dir=str(spec_dir),

@@ -18,6 +18,7 @@ from integrations.notifications import (
     NotificationContext,
     get_notification_service,
 )
+from integrations.notifications.service import load_friendly_task_name
 from linear_updater import (
     LinearTaskState,
     is_linear_enabled,
@@ -358,13 +359,11 @@ async def run_qa_validation_loop(
             try:
                 notification_config = NotificationConfig.from_env()
                 if notification_config.should_trigger("qa"):
-                    # Get project and task names
-                    project_name = project_dir.name
-                    task_name = spec_dir.name
+                    # Get task name
+                    task_name = load_friendly_task_name(spec_dir)
 
                     notification_service = get_notification_service(notification_config)
                     context = NotificationContext(
-                        project_name=project_name,
                         task_name=task_name,
                         phase="qa",
                         spec_dir=str(spec_dir),

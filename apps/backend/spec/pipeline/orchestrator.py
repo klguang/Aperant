@@ -503,12 +503,10 @@ class SpecOrchestrator:
             notification_config = NotificationConfig.from_env()
             if notification_config.should_trigger("plan"):
                 # Get project and task names
-                project_name = self.project_dir.name
                 task_name = self.spec_dir.name
 
                 notification_service = get_notification_service(notification_config)
                 context = NotificationContext(
-                    project_name=project_name,
                     task_name=task_name,
                     phase="plan",
                     spec_dir=str(self.spec_dir),

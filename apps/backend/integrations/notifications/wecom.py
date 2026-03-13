@@ -70,11 +70,10 @@ class WeComNotificationService(NotificationService):
             "qa": "QA",
         }.get(context.phase, context.phase)
 
-        content = f"{context.project_name} - {context.task_name} {phase_display} 已经完成！"
+        content = f"{context.task_name} {phase_display} 已经完成！"
 
         logger.debug(
-            "[WeCom] Sending notification: project=%s, task=%s, phase=%s",
-            context.project_name,
+            "[WeCom] Sending notification: task=%s, phase=%s",
             context.task_name,
             context.phase,
         )
@@ -82,9 +81,9 @@ class WeComNotificationService(NotificationService):
         payload = self._build_message(content)
         return self._send_request(payload)
 
-    def send_test(self, project_name: str) -> bool:
+    def send_test(self) -> bool:
         """Send a test notification."""
-        content = f"测试通知：{project_name} 测试成功！"
+        content = "测试通知：测试成功！"
         payload = self._build_message(content)
         logger.debug("[WeCom] Sending test notification")
         return self._send_request(payload)

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Eye, EyeOff, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
@@ -30,7 +30,6 @@ export function RemoteNotificationConfig({
   updateEnvConfig
 }: RemoteNotificationConfigProps) {
   const { t } = useTranslation(['settings']);
-  const [showWebhook, setShowWebhook] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<'success' | 'error' | null>(null);
 
@@ -206,22 +205,12 @@ export function RemoteNotificationConfig({
             <p className="text-xs text-muted-foreground">
               {t('settings:projectSections.remoteNotification.webhookDescription')}
             </p>
-            <div className="relative">
-              <Input
-                type={showWebhook ? 'text' : 'password'}
-                placeholder={`https://...`}
-                value={getWebhookUrl()}
-                onChange={(e) => handleWebhookChange(e.target.value)}
-                className="pr-10"
-              />
-              <button
-                type="button"
-                onClick={() => setShowWebhook(!showWebhook)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                {showWebhook ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
+            <Input
+              type="text"
+              placeholder={`https://...`}
+              value={getWebhookUrl()}
+              onChange={(e) => handleWebhookChange(e.target.value)}
+            />
           </div>
 
           <Separator />

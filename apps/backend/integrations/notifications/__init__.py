@@ -9,6 +9,7 @@ from .service import (
     NotificationContext,
     NullNotificationService,
     get_notification_service,
+    load_friendly_task_name,
 )
 from .wecom import WeComNotificationService
 
@@ -19,4 +20,5 @@ __all__ = [
     "NullNotificationService",
     "WeComNotificationService",
     "get_notification_service",
+    "load_friendly_task_name",
 ]
