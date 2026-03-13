@@ -1649,6 +1649,31 @@ async def run_autonomous_agent(
     # Set final status
     if completed == total:
         status_manager.update(state=BuildState.COMPLETE)
+
+        # Send remote notification for Code completion
+        try:
+            from integrations.notifications.config import NotificationConfig
+            from integrations.notifications.service import get_notification_service
+            from integrations.notifications.service import NotificationContext
+
+            notification_config = NotificationConfig.from_env()
+            if notification_config.should_trigger("code"):
+                # Get project and task names
+                project_name = project_dir.name
+                task_name = spec_dir.name
+
+                notification_service = get_notification_service(notification_config)
+                context = NotificationContext(
+                    project_name=project_name,
+                    task_name=task_name,
+                    phase="code",
+                    spec_dir=str(spec_dir),
+                    project_dir=str(project_dir),
+                )
+                notification_service.send(context)
+        except Exception as e:
+            # Don't fail the build if notification fails
+            print(f"Notification failed: {e}")
     else:
         # Check if all remaining subtasks are stuck — if so, this is an error, not a pause
         all_remaining_stuck = False

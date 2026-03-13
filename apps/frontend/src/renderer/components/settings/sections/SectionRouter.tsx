@@ -6,6 +6,7 @@ import { SecuritySettings } from '../../project-settings/SecuritySettings';
 import { LinearIntegration } from '../integrations/LinearIntegration';
 import { GitHubIntegration } from '../integrations/GitHubIntegration';
 import { GitLabIntegration } from '../integrations/GitLabIntegration';
+import { RemoteNotificationConfig } from '../integrations/RemoteNotificationConfig';
 import { InitializationGuard } from '../common/InitializationGuard';
 import type { ProjectSettingsSection } from '../ProjectSettingsContent';
 
@@ -78,8 +79,8 @@ export function SectionRouter({
     case 'general':
       return (
         <SettingsSection
-          title="General"
-          description={`Configure Auto-Build, agent model, and notifications for ${project.name}`}
+          title={t('projectSections.general.title')}
+          description={t('projectSections.general.description')}
         >
           <GeneralSettings
             project={project}
@@ -189,6 +190,25 @@ export function SectionRouter({
               setShowOpenAIKey={setShowOpenAIKey}
               expanded={true}
               onToggle={() => {}}
+            />
+          </InitializationGuard>
+        </SettingsSection>
+      );
+
+    case 'remoteNotification':
+      return (
+        <SettingsSection
+          title={t('projectSections.remoteNotification.integrationTitle')}
+          description={t('projectSections.remoteNotification.integrationDescription')}
+        >
+          <InitializationGuard
+            initialized={!!project.autoBuildPath}
+            title={t('projectSections.remoteNotification.integrationTitle')}
+            description={t('projectSections.remoteNotification.syncDescription')}
+          >
+            <RemoteNotificationConfig
+              envConfig={envConfig}
+              updateEnvConfig={updateEnvConfig}
             />
           </InitializationGuard>
         </SettingsSection>

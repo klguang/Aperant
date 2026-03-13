@@ -55,6 +55,7 @@ export interface ProjectAPI {
   updateProjectEnv: (projectId: string, config: Partial<ProjectEnvConfig>) => Promise<IPCResult>;
   checkClaudeAuth: (projectId: string) => Promise<IPCResult<ClaudeAuthResult>>;
   invokeClaudeSetup: (projectId: string) => Promise<IPCResult<ClaudeAuthResult>>;
+  testRemoteNotification: (config: any) => Promise<IPCResult<{ success: boolean; error?: string }>>;
 
   // Dialog Operations
   selectDirectory: () => Promise<string | null>;
@@ -214,6 +215,9 @@ export const createProjectAPI = (): ProjectAPI => ({
 
   invokeClaudeSetup: (projectId: string): Promise<IPCResult<ClaudeAuthResult>> =>
     ipcRenderer.invoke(IPC_CHANNELS.ENV_INVOKE_CLAUDE_SETUP, projectId),
+
+  testRemoteNotification: (config: any): Promise<IPCResult<{ success: boolean; error?: string }>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.ENV_TEST_REMOTE_NOTIFICATION, config),
 
   // Dialog Operations
   selectDirectory: (): Promise<string | null> =>

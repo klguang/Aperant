@@ -462,6 +462,7 @@ export interface ElectronAPI {
   updateProjectEnv: (projectId: string, config: Partial<ProjectEnvConfig>) => Promise<IPCResult>;
   checkClaudeAuth: (projectId: string) => Promise<IPCResult<ClaudeAuthResult>>;
   invokeClaudeSetup: (projectId: string) => Promise<IPCResult<ClaudeAuthResult>>;
+  testRemoteNotification: (config: any) => Promise<IPCResult<{ success: boolean; error?: string }>>;
 
   // Memory Infrastructure operations (LadybugDB - no Docker required)
   getMemoryInfrastructureStatus: (dbPath?: string) => Promise<IPCResult<InfrastructureStatus>>;

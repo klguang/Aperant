@@ -289,7 +289,30 @@ export interface ProjectContextData {
 }
 
 // Environment Configuration for project .env files
+// 远程通知配置
+export interface RemoteNotificationConfig {
+  enabled: boolean;
+  method: 'wecom' | 'feishu' | 'dingtalk'; // 支持企业微信、飞书、钉钉
+  wecom?: {
+    webhookUrl: string;
+  };
+  feishu?: {
+    webhookUrl: string;
+  };
+  dingtalk?: {
+    webhookUrl: string;
+  };
+  triggers: {
+    planComplete: boolean;
+    codeComplete: boolean;
+    qaComplete: boolean;
+  };
+}
+
 export interface ProjectEnvConfig {
+  // 远程通知配置
+  remoteNotificationConfig?: RemoteNotificationConfig;
+
   // Claude Authentication
   claudeOAuthToken?: string;
   claudeAuthStatus: 'authenticated' | 'token_set' | 'not_configured';

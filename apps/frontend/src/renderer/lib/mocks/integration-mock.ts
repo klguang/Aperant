@@ -61,6 +61,13 @@ export const integrationMock = {
     }
   }),
 
+  testRemoteNotification: async () => ({
+    success: true,
+    data: {
+      success: true
+    }
+  }),
+
   // Linear Integration Operations
   getLinearTeams: async () => ({
     success: true,

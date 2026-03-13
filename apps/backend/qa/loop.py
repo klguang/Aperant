@@ -13,6 +13,11 @@ from pathlib import Path
 from core.client import create_client
 from core.task_event import TaskEventEmitter
 from debug import debug, debug_error, debug_section, debug_success, debug_warning
+from integrations.notifications import (
+    NotificationConfig,
+    NotificationContext,
+    get_notification_service,
+)
 from linear_updater import (
     LinearTaskState,
     is_linear_enabled,
@@ -348,6 +353,27 @@ async def run_qa_validation_loop(
                     "testsRun": qa_status.get("tests_passed", {}),
                 },
             )
+
+            # Send remote notification for QA completion
+            try:
+                notification_config = NotificationConfig.from_env()
+                if notification_config.should_trigger("qa"):
+                    # Get project and task names
+                    project_name = project_dir.name
+                    task_name = spec_dir.name
+
+                    notification_service = get_notification_service(notification_config)
+                    context = NotificationContext(
+                        project_name=project_name,
+                        task_name=task_name,
+                        phase="qa",
+                        spec_dir=str(spec_dir),
+                        project_dir=str(project_dir),
+                    )
+                    notification_service.send(context)
+            except Exception as e:
+                # Don't fail the build if notification fails
+                debug("qa_loop", "Notification failed", error=str(e))
 
             print("\n" + "=" * 70)
             print("  ✅ QA APPROVED")

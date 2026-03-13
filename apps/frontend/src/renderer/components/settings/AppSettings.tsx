@@ -14,6 +14,7 @@ import {
   Github,
   Database,
   Sparkles,
+  MessageSquare,
   Monitor,
   Globe,
   Code,
@@ -90,6 +91,7 @@ const appNavItemsConfig: NavItemConfig<AppSection>[] = [
 
 const projectNavItemsConfig: NavItemConfig<ProjectSettingsSection>[] = [
   { id: 'general', icon: Settings2 },
+  { id: 'remoteNotification', icon: MessageSquare },
   { id: 'linear', icon: Zap },
   { id: 'github', icon: Github },
   { id: 'gitlab', icon: GitLabIcon },

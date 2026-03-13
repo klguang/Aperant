@@ -385,6 +385,36 @@
       "integrationTitle": "Mémoire",
       "integrationDescription": "Configurer la mémoire persistante inter-sessions pour les agents",
       "syncDescription": "Configurer la mémoire persistante"
+    },
+    "remoteNotification": {
+      "title": "Notification à distance",
+      "description": "Paramètres de notification à distance",
+      "integrationTitle": "Notifications à distance",
+      "integrationDescription": "Configurer les notifications à distance pour l'achèvement des tâches",
+      "syncDescription": "Configurer le webhook de notification à distance",
+      "enable": "Activer les notifications à distance",
+      "enableDescription": "Envoyer des notifications aux services distants lorsque les tâches sont terminées",
+      "method": "Méthode de notification",
+      "methodDescription": "Sélectionner le service de notification à distance",
+      "methods": {
+        "wecom": "WeCom",
+        "feishu": "Feishu",
+        "dingtalk": "DingTalk"
+      },
+      "webhook": "URL Webhook",
+      "webhookDescription": "Adresse webhook pour le service de notification sélectionné",
+      "triggers": "Déclencheurs de notification",
+      "triggersDescription": "Sélectionner pour quelles phases de tâche envoyer des notifications",
+      "planComplete": "Plan terminé",
+      "codeComplete": "Code terminé",
+      "qaComplete": "QA terminé",
+      "test": "Test de notification",
+      "testDescription": "Envoyer une notification de test pour vérifier la configuration",
+      "sendTest": "Envoyer une notification de test",
+      "sending": "Envoi...",
+      "testSuccess": "Notification de test envoyée avec succès!",
+      "testError": "Échec de l'envoi de la notification de test. Veuillez vérifier votre URL de webhook.",
+      "webhookRequired": "L'URL du webhook est requise"
     }
   },
   "agentProfile": {

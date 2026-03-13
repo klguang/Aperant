@@ -21,6 +21,16 @@ const GITLAB_ENV_KEYS = {
   AUTO_SYNC: 'GITLAB_AUTO_SYNC'
 } as const;
 
+// 通知系统环境变量键
+const NOTIFICATION_ENV_KEYS = {
+  ENABLED: 'REMOTE_NOTIFICATION_ENABLED',
+  METHOD: 'REMOTE_NOTIFICATION_METHOD',
+  WEBHOOK_URL: 'REMOTE_NOTIFICATION_WEBHOOK_URL',
+  TRIGGER_PLAN: 'REMOTE_NOTIFICATION_TRIGGER_PLAN_COMPLETE',
+  TRIGGER_CODE: 'REMOTE_NOTIFICATION_TRIGGER_CODE_COMPLETE',
+  TRIGGER_QA: 'REMOTE_NOTIFICATION_TRIGGER_QA_COMPLETE'
+} as const;
+
 /**
  * Helper to generate .env line (DRY)
  */
@@ -133,6 +143,33 @@ export function registerEnvHandlers(
     }
     if (config.gitlabAutoSync !== undefined) {
       existingVars[GITLAB_ENV_KEYS.AUTO_SYNC] = config.gitlabAutoSync ? 'true' : 'false';
+    }
+    // Remote Notification Integration
+    if (config.remoteNotificationConfig) {
+      existingVars[NOTIFICATION_ENV_KEYS.ENABLED] = config.remoteNotificationConfig.enabled ? 'true' : 'false';
+      existingVars[NOTIFICATION_ENV_KEYS.METHOD] = config.remoteNotificationConfig.method || 'wecom';
+
+      // 根据通知方法获取对应的webhook
+      let webhookUrl: string | undefined;
+      switch (config.remoteNotificationConfig.method) {
+        case 'wecom':
+          webhookUrl = config.remoteNotificationConfig.wecom?.webhookUrl;
+          break;
+        case 'feishu':
+          webhookUrl = config.remoteNotificationConfig.feishu?.webhookUrl;
+          break;
+        case 'dingtalk':
+          webhookUrl = config.remoteNotificationConfig.dingtalk?.webhookUrl;
+          break;
+      }
+
+      if (webhookUrl) {
+        existingVars[NOTIFICATION_ENV_KEYS.WEBHOOK_URL] = webhookUrl;
+      }
+
+      existingVars[NOTIFICATION_ENV_KEYS.TRIGGER_PLAN] = config.remoteNotificationConfig.triggers?.planComplete ? 'true' : 'false';
+      existingVars[NOTIFICATION_ENV_KEYS.TRIGGER_CODE] = config.remoteNotificationConfig.triggers?.codeComplete ? 'true' : 'false';
+      existingVars[NOTIFICATION_ENV_KEYS.TRIGGER_QA] = config.remoteNotificationConfig.triggers?.qaComplete ? 'true' : 'false';
     }
     // Git/Worktree Settings
     if (config.defaultBranch !== undefined) {
@@ -260,6 +297,16 @@ ${envLine(existingVars, GITLAB_ENV_KEYS.INSTANCE_URL, 'https://gitlab.com')}
 ${envLine(existingVars, GITLAB_ENV_KEYS.TOKEN)}
 ${envLine(existingVars, GITLAB_ENV_KEYS.PROJECT, 'group/project')}
 ${envLine(existingVars, GITLAB_ENV_KEYS.AUTO_SYNC, 'false')}
+
+# =============================================================================
+# REMOTE NOTIFICATION INTEGRATION (OPTIONAL)
+# =============================================================================
+${existingVars[NOTIFICATION_ENV_KEYS.ENABLED] !== undefined ? `${NOTIFICATION_ENV_KEYS.ENABLED}=${existingVars[NOTIFICATION_ENV_KEYS.ENABLED]}` : `# ${NOTIFICATION_ENV_KEYS.ENABLED}=false`}
+${existingVars[NOTIFICATION_ENV_KEYS.METHOD] ? `${NOTIFICATION_ENV_KEYS.METHOD}=${existingVars[NOTIFICATION_ENV_KEYS.METHOD]}` : `# ${NOTIFICATION_ENV_KEYS.METHOD}=wecom`}
+${existingVars[NOTIFICATION_ENV_KEYS.WEBHOOK_URL] ? `${NOTIFICATION_ENV_KEYS.WEBHOOK_URL}=${existingVars[NOTIFICATION_ENV_KEYS.WEBHOOK_URL]}` : `# ${NOTIFICATION_ENV_KEYS.WEBHOOK_URL}=`}
+${existingVars[NOTIFICATION_ENV_KEYS.TRIGGER_PLAN] !== undefined ? `${NOTIFICATION_ENV_KEYS.TRIGGER_PLAN}=${existingVars[NOTIFICATION_ENV_KEYS.TRIGGER_PLAN]}` : `# ${NOTIFICATION_ENV_KEYS.TRIGGER_PLAN}=false`}
+${existingVars[NOTIFICATION_ENV_KEYS.TRIGGER_CODE] !== undefined ? `${NOTIFICATION_ENV_KEYS.TRIGGER_CODE}=${existingVars[NOTIFICATION_ENV_KEYS.TRIGGER_CODE]}` : `# ${NOTIFICATION_ENV_KEYS.TRIGGER_CODE}=false`}
+${existingVars[NOTIFICATION_ENV_KEYS.TRIGGER_QA] !== undefined ? `${NOTIFICATION_ENV_KEYS.TRIGGER_QA}=${existingVars[NOTIFICATION_ENV_KEYS.TRIGGER_QA]}` : `# ${NOTIFICATION_ENV_KEYS.TRIGGER_QA}=false`}
 
 # =============================================================================
 # GIT/WORKTREE SETTINGS (OPTIONAL)
@@ -476,6 +523,43 @@ ${existingVars['GRAPHITI_DB_PATH'] ? `GRAPHITI_DB_PATH=${existingVars['GRAPHITI_
         config.enableFancyUi = false;
       }
 
+      // Parse remote notification config
+      const remoteNotificationEnabled = vars[NOTIFICATION_ENV_KEYS.ENABLED]?.toLowerCase() === 'true';
+      const remoteNotificationMethod = (vars[NOTIFICATION_ENV_KEYS.METHOD] || 'wecom') as 'wecom' | 'feishu' | 'dingtalk';
+      const webhookUrl = vars[NOTIFICATION_ENV_KEYS.WEBHOOK_URL];
+      const triggerPlan = vars[NOTIFICATION_ENV_KEYS.TRIGGER_PLAN]?.toLowerCase() === 'true';
+      const triggerCode = vars[NOTIFICATION_ENV_KEYS.TRIGGER_CODE]?.toLowerCase() === 'true';
+      const triggerQA = vars[NOTIFICATION_ENV_KEYS.TRIGGER_QA]?.toLowerCase() === 'true';
+
+      if (remoteNotificationEnabled || webhookUrl) {
+        const notificationConfig: any = {
+          enabled: remoteNotificationEnabled,
+          method: remoteNotificationMethod,
+          triggers: {
+            planComplete: triggerPlan,
+            codeComplete: triggerCode,
+            qaComplete: triggerQA
+          }
+        };
+
+        // 根据通知方法设置对应的webhook
+        if (webhookUrl) {
+          switch (remoteNotificationMethod) {
+            case 'wecom':
+              notificationConfig.wecom = { webhookUrl };
+              break;
+            case 'feishu':
+              notificationConfig.feishu = { webhookUrl };
+              break;
+            case 'dingtalk':
+              notificationConfig.dingtalk = { webhookUrl };
+              break;
+          }
+        }
+
+        config.remoteNotificationConfig = notificationConfig;
+      }
+
       // Populate graphitiProviderConfig from .env file (embeddings only - no LLM provider)
       const embeddingProvider = vars['GRAPHITI_EMBEDDER_PROVIDER'];
       if (embeddingProvider || vars['AZURE_OPENAI_API_KEY'] ||
@@ -671,6 +755,82 @@ ${existingVars['GRAPHITI_DB_PATH'] ? `GRAPHITI_DB_PATH=${existingVars['GRAPHITI_
         return {
           success: false,
           error: error instanceof Error ? error.message : 'Failed to check Claude auth'
+        };
+      }
+    }
+  );
+
+  ipcMain.handle(
+    IPC_CHANNELS.ENV_TEST_REMOTE_NOTIFICATION,
+    async (_, config: any): Promise<IPCResult<{ success: boolean; error?: string }>> => {
+      try {
+        const { method, wecom, feishu, dingtalk } = config;
+        let webhookUrl: string | undefined;
+
+        switch (method) {
+          case 'wecom':
+            webhookUrl = wecom?.webhookUrl;
+            break;
+          case 'feishu':
+            webhookUrl = feishu?.webhookUrl;
+            break;
+          case 'dingtalk':
+            webhookUrl = dingtalk?.webhookUrl;
+            break;
+          default:
+            return { success: false, error: 'Unsupported notification method' };
+        }
+
+        if (!webhookUrl) {
+          return { success: false, error: 'Webhook URL is required' };
+        }
+
+        let payload: any;
+        switch (method) {
+          case 'wecom':
+            payload = {
+              msgtype: 'text',
+              text: {
+                content: '测试通知：Auto Claude 企业微信通知功能正常！'
+              }
+            };
+            break;
+          case 'feishu':
+            payload = {
+              msg_type: 'text',
+              content: {
+                text: '测试通知：Auto Claude 飞书通知功能正常！'
+              }
+            };
+            break;
+          case 'dingtalk':
+            payload = {
+              msgtype: 'text',
+              text: {
+                content: '测试通知：Auto Claude 钉钉通知功能正常！'
+              }
+            };
+            break;
+          default:
+            return { success: false, error: 'Unsupported notification method' };
+        }
+
+        const response = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+          return { success: true, data: { success: true } };
+        } else {
+          const errorText = await response.text();
+          return { success: false, error: `Failed to send test notification: ${response.status} ${errorText}` };
+        }
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Failed to send test notification'
         };
       }
     }

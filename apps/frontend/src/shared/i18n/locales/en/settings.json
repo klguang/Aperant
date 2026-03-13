@@ -385,6 +385,36 @@
       "integrationTitle": "Memory",
       "integrationDescription": "Configure persistent cross-session memory for agents",
       "syncDescription": "Configure persistent memory"
+    },
+    "remoteNotification": {
+      "title": "Remote Notification",
+      "description": "Remote notification settings",
+      "integrationTitle": "Remote Notifications",
+      "integrationDescription": "Configure remote notifications for task completion",
+      "syncDescription": "Configure remote notification webhook",
+      "enable": "Enable Remote Notifications",
+      "enableDescription": "Send notifications to remote services when tasks complete",
+      "method": "Notification Method",
+      "methodDescription": "Select the remote notification service",
+      "methods": {
+        "wecom": "WeCom",
+        "feishu": "Feishu",
+        "dingtalk": "DingTalk"
+      },
+      "webhook": "Webhook URL",
+      "webhookDescription": "Webhook address for the selected notification service",
+      "triggers": "Notification Triggers",
+      "triggersDescription": "Select which task phases to send notifications for",
+      "planComplete": "Plan Complete",
+      "codeComplete": "Code Complete",
+      "qaComplete": "QA Complete",
+      "test": "Test Notification",
+      "testDescription": "Send a test notification to verify the configuration",
+      "sendTest": "Send Test Notification",
+      "sending": "Sending...",
+      "testSuccess": "Test notification sent successfully!",
+      "testError": "Failed to send test notification. Please check your webhook URL.",
+      "webhookRequired": "Webhook URL is required"
     }
   },
   "agentProfile": {

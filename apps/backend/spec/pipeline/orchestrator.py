@@ -494,6 +494,31 @@ class SpecOrchestrator:
             },
         )
 
+        # Send remote notification for Plan completion
+        try:
+            from integrations.notifications.config import NotificationConfig
+            from integrations.notifications.service import get_notification_service
+            from integrations.notifications.service import NotificationContext
+
+            notification_config = NotificationConfig.from_env()
+            if notification_config.should_trigger("plan"):
+                # Get project and task names
+                project_name = self.project_dir.name
+                task_name = self.spec_dir.name
+
+                notification_service = get_notification_service(notification_config)
+                context = NotificationContext(
+                    project_name=project_name,
+                    task_name=task_name,
+                    phase="plan",
+                    spec_dir=str(self.spec_dir),
+                    project_dir=str(self.project_dir),
+                )
+                notification_service.send(context)
+        except Exception as e:
+            # Don't fail the build if notification fails
+            print(f"Notification failed: {e}")
+
         # === HUMAN REVIEW CHECKPOINT ===
         return self._run_review_checkpoint(auto_approve)
 
