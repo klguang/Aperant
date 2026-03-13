@@ -6,6 +6,7 @@ Command-line interface for the Auto Claude autonomous coding framework.
 """
 
 import argparse
+import json
 import os
 import sys
 from pathlib import Path
@@ -23,6 +24,7 @@ from .batch_commands import (
 )
 from .build_commands import handle_build_command
 from .followup_commands import handle_followup_command
+from .notification_commands import handle_test_notification_command
 from .qa_commands import (
     handle_qa_command,
     handle_qa_status_command,
@@ -280,6 +282,30 @@ Environment Variables:
         help="Actually delete files in cleanup (not just preview)",
     )
 
+    # Notification test command
+    parser.add_argument(
+        "--test-notification",
+        action="store_true",
+        help="Test remote notifications",
+    )
+    parser.add_argument(
+        "--notification-method",
+        type=str,
+        choices=["wecom", "feishu", "dingtalk"],
+        help="Notification method (required with --test-notification)",
+    )
+    parser.add_argument(
+        "--notification-webhook",
+        type=str,
+        help="Webhook URL (required with --test-notification)",
+    )
+    parser.add_argument(
+        "--notification-project",
+        type=str,
+        default="Test Project",
+        help="Project name for test message (optional)",
+    )
+
     return parser.parse_args()
 
 
@@ -326,6 +352,25 @@ def _run_cli() -> None:
     # Get model from CLI arg or env var (None if not explicitly set)
     # This allows get_phase_model() to fall back to task_metadata.json
     model = args.model or os.environ.get("AUTO_BUILD_MODEL")
+
+    # Handle notification test command
+    if args.test_notification:
+        if not args.notification_method or not args.notification_webhook:
+            print("Error: --notification-method and --notification-webhook are required with --test-notification")
+            print("\nUsage:")
+            print("  python auto-claude/run.py --test-notification --notification-method wecom --notification-webhook https://...")
+            sys.exit(1)
+
+        result = handle_test_notification_command(
+            method=args.notification_method,
+            webhook_url=args.notification_webhook,
+            project_name=args.notification_project,
+        )
+
+        # Output as JSON for the UI to parse
+        import json
+        print(json.dumps(result))
+        sys.exit(0 if result["success"] else 1)
 
     # Handle --list command
     if args.list:

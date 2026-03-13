@@ -6,11 +6,18 @@ import path from 'path';
 import { app } from 'electron';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { spawn } from 'child_process';
+import { fileURLToPath } from 'url';
 import { projectStore } from '../project-store';
 import { parseEnvFile } from './utils';
 import { getClaudeCliInvocation, getClaudeCliInvocationAsync } from '../claude-cli-utils';
-import { debugError } from '../../shared/utils/debug-logger';
+import { debugError, debugLog } from '../../shared/utils/debug-logger';
 import { getSpawnOptions, getSpawnCommand } from '../env-utils';
+import { findPythonCommand, parsePythonCommand } from '../python-detector';
+import { getAugmentedEnv } from '../env-utils';
+
+// ESM-compatible __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // GitLab environment variable keys
 const GITLAB_ENV_KEYS = {
@@ -785,49 +792,94 @@ ${existingVars['GRAPHITI_DB_PATH'] ? `GRAPHITI_DB_PATH=${existingVars['GRAPHITI_
           return { success: false, error: 'Webhook URL is required' };
         }
 
-        let payload: any;
-        switch (method) {
-          case 'wecom':
-            payload = {
-              msgtype: 'text',
-              text: {
-                content: '测试通知：Auto Claude 企业微信通知功能正常！'
-              }
-            };
-            break;
-          case 'feishu':
-            payload = {
-              msg_type: 'text',
-              content: {
-                text: '测试通知：Auto Claude 飞书通知功能正常！'
-              }
-            };
-            break;
-          case 'dingtalk':
-            payload = {
-              msgtype: 'text',
-              text: {
-                content: '测试通知：Auto Claude 钉钉通知功能正常！'
-              }
-            };
-            break;
-          default:
-            return { success: false, error: 'Unsupported notification method' };
+        // Get Python command and parse it
+        const pythonCmd = findPythonCommand();
+        if (!pythonCmd) {
+          return { success: false, error: 'Python not found' };
         }
 
-        const response = await fetch(webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+        const [pythonExecutable, pythonArgs] = parsePythonCommand(pythonCmd);
+
+        // Build the backend command arguments
+        const args = [
+          ...pythonArgs,
+          path.join(__dirname, '..', '..', '..', '..', 'backend', 'run.py'),
+          '--test-notification',
+          '--notification-method',
+          method,
+          '--notification-webhook',
+          webhookUrl,
+          '--notification-project',
+          'Aperant Test Project'
+        ];
+
+        debugLog('[ENV] Running test notification command:', pythonExecutable, args.join(' '));
+
+        // Get augmented environment for process
+        const env = { ...getAugmentedEnv(), PYTHONUNBUFFERED: '1' };
+
+        // Spawn the backend process
+        const result = await new Promise<{ success: boolean; error?: string }>((resolve) => {
+          const proc = spawn(pythonExecutable, args, {
+            cwd: app.getPath('userData'),
+            env: env,
+            shell: false
+          });
+
+          let stdout = '';
+          let stderr = '';
+
+          proc.stdout?.on('data', (data: Buffer) => {
+            stdout += data.toString('utf-8');
+          });
+
+          proc.stderr?.on('data', (data: Buffer) => {
+            stderr += data.toString('utf-8');
+          });
+
+          proc.on('close', (code: number | null) => {
+            debugLog('[ENV] Test notification process completed with code:', code);
+            debugLog('[ENV] stdout:', stdout);
+            debugLog('[ENV] stderr:', stderr);
+
+            try {
+              // Try to parse JSON response
+              const parsedOutput = stdout.trim().split('\n').pop();
+              if (parsedOutput && parsedOutput.startsWith('{')) {
+                const result = JSON.parse(parsedOutput);
+                resolve(result);
+              } else {
+                // If no JSON, check exit code
+                if (code === 0) {
+                  resolve({ success: true });
+                } else {
+                  resolve({
+                    success: false,
+                    error: stderr || 'Failed to send test notification'
+                  });
+                }
+              }
+            } catch (parseError) {
+              debugError('[ENV] Failed to parse backend response:', parseError);
+              resolve({
+                success: false,
+                error: stderr || 'Failed to parse backend response'
+              });
+            }
+          });
+
+          proc.on('error', (err: Error) => {
+            debugError('[ENV] Failed to spawn test notification process:', err);
+            resolve({
+              success: false,
+              error: err.message
+            });
+          });
         });
 
-        if (response.ok) {
-          return { success: true, data: { success: true } };
-        } else {
-          const errorText = await response.text();
-          return { success: false, error: `Failed to send test notification: ${response.status} ${errorText}` };
-        }
+        return { success: true, data: result };
       } catch (error) {
+        debugError('[ENV] Test notification error:', error);
         return {
           success: false,
           error: error instanceof Error ? error.message : 'Failed to send test notification'
