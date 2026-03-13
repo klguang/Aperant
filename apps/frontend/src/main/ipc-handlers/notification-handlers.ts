@@ -73,8 +73,6 @@ export function registerNotificationHandlers(
           method,
           '--webhook-url',
           webhookUrl,
-          '--project-name',
-          'Aperant Test Project',
           '--json'
         ];
 
