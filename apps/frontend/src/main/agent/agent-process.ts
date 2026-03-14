@@ -27,6 +27,7 @@ import { getAugmentedEnv } from '../env-utils';
 import { getToolInfo, getClaudeCliPathForSdk } from '../cli-tool-manager';
 import { killProcessGracefully, isWindows, getPathDelimiter } from '../platform';
 import { debugLog } from '../../shared/utils/debug-logger';
+import { getAppLanguage } from '../app-language';
 
 /**
  * Type for supported CLI tools
@@ -229,26 +230,8 @@ export class AgentProcessManager {
     const ghCliEnv = this.detectAndSetCliPath('gh');
     const glabCliEnv = this.detectAndSetCliPath('glab');
 
-    // Add language configuration from app settings
-    // Maps frontend language (en/fr) to backend notification language (en/zh)
-    const appSettings = readSettingsFile() as Partial<AppSettings>;
-    const frontendLanguage = appSettings.language || 'en';
-    let notificationLanguage = 'en';
-    // Current frontend only supports 'en' and 'fr', both map to 'en'
-    // If 'zh' support is added in the future, we'll map it to 'zh'
-    if (frontendLanguage === 'en') {
-      notificationLanguage = 'en';
-    } else if (frontendLanguage === 'fr') {
-      notificationLanguage = 'en'; // French falls back to English
-    }
-    // Note: If frontend adds 'zh' support in the future, uncomment:
-    // else if (frontendLanguage === 'zh') {
-    //   notificationLanguage = 'zh';
-    // }
-    const languageEnv: Record<string, string> = {
-      NOTIFICATION_LANGUAGE: notificationLanguage
-    };
-    console.log('[AgentProcess] Setting notification language:', notificationLanguage, '(from frontend language:', frontendLanguage, ')');
+    const appSettings = (readSettingsFile() || {}) as Partial<AppSettings>;
+    const language = (appSettings.language as string) || 'en';   // 默认英文
 
     // Profile env is spread last to ensure CLAUDE_CONFIG_DIR and auth vars
     // from the active profile always win over extraEnv or augmentedEnv.
@@ -258,13 +241,14 @@ export class AgentProcessManager {
       ...claudeCliEnv,
       ...ghCliEnv,
       ...glabCliEnv,
-      ...languageEnv,
       ...extraEnv,
       ...profileEnv,
       PYTHONUNBUFFERED: '1',
       PYTHONIOENCODING: 'utf-8',
-      PYTHONUTF8: '1'
+      PYTHONUTF8: '1',
+      LANGUAGE: language
     } as NodeJS.ProcessEnv;
+    console.log('[AgentProcess] mergedEnv.LANGUAGE:', mergedEnv.LANGUAGE);
 
     // When the active profile provides CLAUDE_CONFIG_DIR, clear CLAUDE_CODE_OAUTH_TOKEN
     // from the spawn environment. CLAUDE_CONFIG_DIR lets Claude Code resolve its own

@@ -69,7 +69,7 @@ def get_language() -> str:
     Returns:
         Current language code (en or zh)
     """
-    lang = os.environ.get("NOTIFICATION_LANGUAGE", "").lower().strip()
+    lang = os.environ.get("LANGUAGE", "en").lower().strip()
 
     # 显式的语言映射
     language_mapping = {

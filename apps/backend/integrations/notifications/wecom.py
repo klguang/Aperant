@@ -8,6 +8,7 @@ import logging
 from typing import Any
 import urllib.request
 import urllib.error
+import os
 
 from .config import NotificationConfig
 from .service import NotificationService, NotificationContext
@@ -96,5 +97,5 @@ class WeComNotificationService(NotificationService):
         """Send a test notification."""
         content = translate("notification.test")
         payload = self._build_message(content)
-        logger.debug("[WeCom] Sending test notification")
+        logger.info("[WeCom] Sending test notification")
         return self._send_request(payload)
