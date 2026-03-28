@@ -1127,12 +1127,26 @@ export function KanbanBoard({ tasks, onTaskClick, onNewTaskClick, onRefresh, isR
           break;
         }
 
-        // Get the oldest task in queue (FIFO ordering)
-        const nextTask = queuedTasks.sort((a, b) => {
-          const dateA = new Date(a.createdAt).getTime();
-          const dateB = new Date(b.createdAt).getTime();
-          return dateA - dateB; // Ascending order (oldest first)
-        })[0];
+        // Get the next task in queue order (using Kanban board drag-and-drop order if available)
+        let nextTask: typeof queuedTasks[0] | undefined;
+
+        if (taskOrder && taskOrder.queue && taskOrder.queue.length > 0) {
+          // Use Kanban board order: find the first task in taskOrder.queue that's in queuedTasks
+          const queuedTaskIds = new Set(queuedTasks.map(t => t.id));
+          const nextTaskId = taskOrder.queue.find(id => queuedTaskIds.has(id));
+          if (nextTaskId) {
+            nextTask = queuedTasks.find(t => t.id === nextTaskId);
+          }
+        }
+
+        // Fallback to creation time order if no taskOrder or no matching task found
+        if (!nextTask) {
+          nextTask = queuedTasks.sort((a, b) => {
+            const dateA = new Date(a.createdAt).getTime();
+            const dateB = new Date(b.createdAt).getTime();
+            return dateA - dateB; // Ascending order (oldest first)
+          })[0];
+        }
 
         console.log(`[Queue] Auto-promoting task ${nextTask.id} from Queue to In Progress (${inProgressCount + 1}/${maxParallelTasks})`);
         const result = await persistTaskStatus(nextTask.id, 'in_progress');
@@ -1155,7 +1169,7 @@ export function KanbanBoard({ tasks, onTaskClick, onNewTaskClick, onRefresh, isR
     } finally {
       isProcessingQueueRef.current = false;
     }
-  }, [maxParallelTasks]);
+  }, [maxParallelTasks, taskOrder]);
 
   // Register task status change listener for queue auto-promotion
   // This ensures processQueue() is called whenever a task leaves in_progress
