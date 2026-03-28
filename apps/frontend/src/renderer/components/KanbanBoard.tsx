@@ -803,8 +803,8 @@ export function KanbanBoard({ tasks, onTaskClick, onNewTaskClick, onRefresh, isR
           .filter(t => validOrderSet.has(t.id))
           .sort((a, b) => (indexMap.get(a.id) ?? 0) - (indexMap.get(b.id) ?? 0));
 
-        // 5. Prepend new tasks at top, then ordered tasks
-        grouped[statusKey] = [...newTasks, ...orderedTasks];
+        // 5. Ordered tasks come first (in user-specified order), then new tasks at the end
+        grouped[statusKey] = [...orderedTasks, ...newTasks];
       } else {
         // No custom order: fallback to createdAt sort (newest first)
         grouped[statusKey].sort((a, b) => {
@@ -1144,7 +1144,7 @@ export function KanbanBoard({ tasks, onTaskClick, onNewTaskClick, onRefresh, isR
           nextTask = queuedTasks.sort((a, b) => {
             const dateA = new Date(a.createdAt).getTime();
             const dateB = new Date(b.createdAt).getTime();
-            return dateA - dateB; // Ascending order (oldest first)
+            return dateB - dateA; // Descending order (newest first, matches UI display)
           })[0];
         }
 
